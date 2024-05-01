@@ -1,7 +1,8 @@
-use std::fs;
+use std::{fmt::Display, fs, path};
 
-use serde::{Serialize, Deserialize};
-
+use clap::{Parser, Subcommand};
+use csv::ReaderBuilder;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Book {
@@ -21,14 +22,67 @@ impl Book {
     }
 }
 
+impl Display for Book {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "name: {}, author: {}, date: {}, price: {}",
+            self.name, self.author, self.date, self.price
+        )
+    }
+}
+
+#[derive(Debug, Parser)]
+struct Args {
+    #[clap(subcommand)]
+    command: Command,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    Csv {
+        #[clap(long, value_parser = validate_file_existed)]
+        file: String,
+
+        #[clap(long, default_value = ",")]
+        delimiter: char,
+
+        #[clap(long)]
+        to_json: bool,
+    },
+}
+
+fn validate_file_existed(file: &str) -> Result<String, String> {
+    if !path::Path::new(file).exists() {
+        Err(format!("Not found {}", file))
+    } else {
+        Ok(file.into())
+    }
+}
 
 fn main() -> anyhow::Result<()> {
-    let file = fs::File::open("./assets/book.csv")?;
-    let mut reader = csv::Reader::from_reader(file);
-    for record in reader.deserialize() {
-        let line: Book = record?;
-        println!("{}", line.to_json());
-    }
+    let args = Args::parse();
+    match args.command {
+        Command::Csv {
+            file,
+            delimiter,
+            to_json,
+        } => {
+            let f_handler = fs::File::open(file)?;
+            let mut rdr = ReaderBuilder::new()
+                .delimiter(delimiter as u8)
+                .from_reader(f_handler);
+            for line in rdr.deserialize() {
+                let line: Book = line?;
+
+                if to_json {
+                    println!("{}", line.to_json());
+                } else {
+                    println!("{}", line);
+                }
+            }
+        }
+    };
 
     Ok(())
 }
