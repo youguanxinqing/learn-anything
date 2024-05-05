@@ -1,7 +1,7 @@
-use std::fs;
 use std::fmt;
-use std::str::FromStr;
+use std::fs;
 use std::io::Write;
+use std::str::FromStr;
 
 use anyhow::{self, Ok};
 use csv::ReaderBuilder;
@@ -51,7 +51,6 @@ pub fn process_ckv(
     output: &str,
     output_format: OutputFormat,
 ) -> anyhow::Result<()> {
-
     let f_handler = fs::File::open(file)?;
     let mut rdr = ReaderBuilder::new()
         .delimiter(delimiter as u8)
@@ -75,7 +74,6 @@ pub fn process_ckv(
 
     let mut out = fs::File::create(format!("{}.{}", output, output_format))?;
     out.write(lines.as_bytes())?;
-
 
     Ok(())
 }
