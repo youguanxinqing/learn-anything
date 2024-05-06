@@ -1,6 +1,7 @@
 use clap::Parser;
 
 mod process;
+use process::process_base64::*;
 use process::process_csv::*;
 use process::process_genpass::*;
 
@@ -31,6 +32,7 @@ fn main() -> anyhow::Result<()> {
             lowercase,
             uppercase,
         }) => process_genpass(length, symbol, number, lowercase, uppercase),
+        cli::Command::Base64(opts) => process_base64(opts),
         _ => Ok(()),
     };
     if result.is_err() {
