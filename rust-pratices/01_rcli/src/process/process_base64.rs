@@ -1,6 +1,7 @@
 use std::{io::Read};
 
 use crate::cli::base64::*;
+use base64::{engine::general_purpose::{STANDARD, URL_SAFE}, Engine};
 
 pub fn process_base64(cmd: Base64Subcommand) -> anyhow::Result<()> {
     match cmd {
@@ -33,8 +34,13 @@ fn process_base64_encode(input: &str, formatter: Base64Formatter) -> anyhow::Res
     
     let reader = get_reader(input)?;
     let input_content = read_all(&mut Box::new(reader))?;
-    
-    println!("input_content: {:?}", input_content);
+
+    let encoder = match formatter {
+        Base64Formatter::NORMAL => STANDARD,
+        Base64Formatter::URLSAFE => URL_SAFE,
+    };
+    let encode_string = encoder.encode(input_content);
+    println!("{}", encode_string);
 
     Ok(())
 }
@@ -45,7 +51,36 @@ fn process_base64_decode(input: &str, formatter: Base64Formatter) -> anyhow::Res
     let reader = get_reader(input)?;
     let input_content = read_all(&mut Box::new(reader))?;
 
-    println!("input_content: {:?}", input_content);
+    let encoder = match formatter {
+        Base64Formatter::NORMAL => STANDARD,
+        Base64Formatter::URLSAFE => URL_SAFE,
+    };
+    let decode_string = encoder.decode(input_content)?;
+    println!("{}", String::from_utf8(decode_string)?);
     
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_base64_normal_encode() {
+        assert!(process_base64_encode("assets/normal.txt", Base64Formatter::NORMAL).is_ok());
+    }
+
+    #[test]
+    fn test_base64_urlsafe_encode() {
+        assert!(process_base64_encode("assets/normal.txt", Base64Formatter::URLSAFE).is_ok());
+    }
+
+    #[test]
+    fn test_base64_normal_decode() {
+    }
+
+    #[test]
+    fn test_base64_urlsafe_decode() {
+    }
+
 }
