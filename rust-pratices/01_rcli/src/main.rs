@@ -4,10 +4,13 @@ mod process;
 use process::process_base64::*;
 use process::process_csv::*;
 use process::process_genpass::*;
+use process::process_text::process_text;
 
 mod cli;
 use cli::csv::CsvOpts;
 use cli::genpass::GenpassOpts;
+
+mod utils;
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -33,6 +36,7 @@ fn main() -> anyhow::Result<()> {
             uppercase,
         }) => process_genpass(length, symbol, number, lowercase, uppercase),
         cli::Command::Base64(opts) => process_base64(opts),
+        cli::Command::Text(subcommand) => process_text(subcommand),
         _ => Ok(()),
     };
     if result.is_err() {

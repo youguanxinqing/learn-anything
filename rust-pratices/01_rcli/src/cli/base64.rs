@@ -1,6 +1,8 @@
-use std::{fmt, path};
+use std::fmt;
 
 use clap::{Parser, Subcommand};
+
+use crate::utils::validator::validate_file;
 
 #[derive(Debug, Subcommand)]
 pub enum Base64Subcommand {
@@ -10,19 +12,11 @@ pub enum Base64Subcommand {
 
 #[derive(Debug, Parser)]
 pub struct Base64Opts {
-    #[clap(short, long, default_value = "-", value_parser = validate_input)]
+    #[clap(short, long, default_value = "-", value_parser = validate_file)]
     pub input: String,
 
     #[clap(long, default_value = "normal", value_parser = validate_formatter)]
     pub format: Base64Formatter,
-}
-
-fn validate_input(input: &str) -> Result<String, String> {
-    if input == "-" || path::Path::new(input).exists() {
-        Ok(input.to_owned())
-    } else {
-        Err(format!("not found file: {}", input))
-    }
 }
 
 fn validate_formatter(formatter: &str) -> Result<Base64Formatter, String> {
