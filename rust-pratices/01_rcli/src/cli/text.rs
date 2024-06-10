@@ -93,4 +93,3 @@ mod tests {
         assert_eq!("blake3".to_string(), format!("{}", TextSignFormat::Blake3))
     }
 }
-

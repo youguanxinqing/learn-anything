@@ -1,12 +1,11 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-use crate::utils::validator::{validate_path};
-
+use crate::utils::validator::validate_path;
 
 #[derive(Debug, Subcommand)]
 pub enum HttpSubCommand {
-    Serve(HttpServeOpts)
+    Serve(HttpServeOpts),
 }
 
 #[derive(Debug, Parser)]

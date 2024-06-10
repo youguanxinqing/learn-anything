@@ -66,7 +66,7 @@ impl TextSign for Blake3 {
     fn sign(&self, reader: &mut dyn Read) -> anyhow::Result<Vec<u8>> {
         let mut buf: Vec<_> = Vec::new();
         reader.read_to_end(&mut buf)?;
-        
+
         buf.extend_from_slice(&self.key);
         Ok(blake3::hash(&buf).as_bytes().to_vec())
     }

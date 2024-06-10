@@ -1,8 +1,8 @@
 pub mod base64;
 pub mod csv;
 pub mod genpass;
-pub mod text;
 pub mod http;
+pub mod text;
 
 use clap::{command, Subcommand};
 
