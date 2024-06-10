@@ -1,9 +1,7 @@
 use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    routing::get,
-    Router,
+    extract::{Path, State}, http::StatusCode, routing::get, serve, Router
 };
+use tower_http::services::ServeDir;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 use tracing::info;
 
@@ -50,8 +48,11 @@ async fn process_serve(dir: PathBuf, port: u16) -> anyhow::Result<()> {
         dir.to_str().unwrap()
     );
 
+    let serve_dir = ServeDir::new(".");
+
     let app = Router::new()
         .route("/*path", get(index))
+        .nest_service("/tower", serve_dir)
         .with_state(Arc::new(AppState { dir }));
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let listener = tokio::net::TcpListener::bind(addr).await?;
