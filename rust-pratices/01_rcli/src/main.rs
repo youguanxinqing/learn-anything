@@ -4,6 +4,7 @@ mod process;
 use process::process_base64::*;
 use process::process_csv::*;
 use process::process_genpass::*;
+use process::process_http::*;
 use process::process_text::process_text;
 
 mod cli;
@@ -18,7 +19,10 @@ struct Args {
     command: cli::Command,
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
+
     let args = Args::parse();
 
     let result = match args.command {
@@ -37,6 +41,7 @@ fn main() -> anyhow::Result<()> {
         }) => process_genpass(length, symbol, number, lowercase, uppercase),
         cli::Command::Base64(opts) => process_base64(opts),
         cli::Command::Text(subcommand) => process_text(subcommand),
+        cli::Command::Http(httpcommand) => process_http(httpcommand).await,
         _ => Ok(()),
     };
     if result.is_err() {

@@ -2,7 +2,7 @@ use std::{fmt::Display, path, str::FromStr};
 
 use clap::{Parser, Subcommand};
 
-use crate::utils::validator::validate_file;
+use crate::utils::validator::{validate_file, validate_path};
 
 #[derive(Debug, Subcommand)]
 pub enum TextSubcommand {
@@ -40,7 +40,7 @@ pub struct TextVerifyOpts {
 
 #[derive(Debug, Parser)]
 pub struct TextKeyGenerateOpts {
-    #[arg(short, long, value_parser = validate_output_file)]
+    #[arg(short, long, value_parser = validate_path)]
     pub output: path::PathBuf,
 
     #[arg(short, long, value_parser = verify_sign_format, default_value = "Blake3")]
@@ -94,11 +94,3 @@ mod tests {
     }
 }
 
-fn validate_output_file(output: &str) -> anyhow::Result<path::PathBuf> {
-    let p = path::Path::new(output);
-    if p.exists() && p.is_dir() {
-        Ok(p.to_path_buf())
-    } else {
-        anyhow::bail!("Not found dir: {}", output)
-    }
-}
