@@ -1,8 +1,11 @@
 use axum::{
-    extract::{Path, State}, http::StatusCode, routing::get, serve, Router
+    extract::{Path, State},
+    http::StatusCode,
+    routing::get,
+    serve, Router,
 };
-use tower_http::services::ServeDir;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use tower_http::services::ServeDir;
 use tracing::info;
 
 use crate::cli::http::HttpSubCommand;
