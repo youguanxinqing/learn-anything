@@ -1,5 +1,5 @@
 use std::{fmt::{self, Debug, Display}, ops::{Add, AddAssign, Deref, Mul}, usize};
-use anyhow;
+use anyhow::{self, anyhow};
 
 #[derive(Debug)]
 struct Matrix<T> where T: Debug + Copy + Mul<Output = T> + Add + AddAssign {
@@ -12,6 +12,12 @@ pub struct Vector<T> {
     data: Vec<T>
 }
 
+impl<T> Vector<T> {
+    fn new(data: impl Into<Vec<T>>) -> Self {
+        Vector { data: data.into() }
+    }
+}
+
 impl<T> Deref for Vector<T> {
     type Target = Vec<T>;
     fn deref(&self) -> &Self::Target {
@@ -22,7 +28,7 @@ impl<T> Deref for Vector<T> {
 fn dot_product<T>(a: Vector<T>, b: Vector<T>) -> anyhow::Result<T>
 where T: Debug + Default + Copy + Mul<Output = T> + Add + AddAssign {
     if a.len() != b.len() {
-        return anyhow::bail!("Dot product err: a.len != b.len");
+        return anyhow!("Dot product err: a.len != b.len");
     }
 
     let mut sum = T::default();
@@ -80,4 +86,17 @@ fn main() {
     // let c = multify(&a, &b);
 
     println!("{}", a);
+    //
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Vector;
+
+    #[test]
+    fn test_vector_new() {
+        let a = Vector::new(&[1, 2, 3, 5]);
+        let b = Vector::new(&[1, 2, 3, 5]);
+        assert_eq!(a.len(), b.len());
+    }
 }
