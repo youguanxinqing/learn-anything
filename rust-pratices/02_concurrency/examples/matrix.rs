@@ -1,5 +1,5 @@
 use std::{fmt::{self, Debug, Display}, ops::{Add, AddAssign, Deref, Mul}, usize};
-use anyhow::anyhow;
+use anyhow;
 
 #[derive(Debug)]
 struct Matrix<T> where T: Debug + Copy + Mul<Output = T> + Add + AddAssign {
