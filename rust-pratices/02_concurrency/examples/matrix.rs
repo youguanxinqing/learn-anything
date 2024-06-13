@@ -1,10 +1,35 @@
-use std::{fmt::{self, Debug, Display}, ops::{Add, AddAssign, Mul}, usize};
+use std::{fmt::{self, Debug, Display}, ops::{Add, AddAssign, Deref, Mul}, usize};
+use anyhow::anyhow;
 
 #[derive(Debug)]
 struct Matrix<T> where T: Debug + Copy + Mul<Output = T> + Add + AddAssign {
     data: Vec<T>,
     row: usize,
     col: usize,
+}
+
+pub struct Vector<T> {
+    data: Vec<T>
+}
+
+impl<T> Deref for Vector<T> {
+    type Target = Vec<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+fn dot_product<T>(a: Vector<T>, b: Vector<T>) -> anyhow::Result<T>
+where T: Debug + Default + Copy + Mul<Output = T> + Add + AddAssign {
+    if a.len() != b.len() {
+        return anyhow::bail!("Dot product err: a.len != b.len");
+    }
+
+    let mut sum = T::default();
+    for i in 0..a.len() {
+        sum += a[i] * b[i];
+    }
+    Ok(sum)
 }
 
 impl<T> Matrix<T> where T: Debug + Copy + Mul<Output = T> + Add + AddAssign {
