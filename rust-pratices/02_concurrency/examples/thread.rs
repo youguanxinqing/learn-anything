@@ -28,9 +28,10 @@ fn main() -> anyhow::Result<()> {
         let tx = tx.clone();
         thread::spawn(move || producer(idx, tx));
     }
-    drop(tx); 
+    drop(tx);
 
-    for msg in rx {  // for in will end when all tx are droped.
+    for msg in rx {
+        // for in will end when all tx are droped.
         println!("recv: {:?}", msg);
     }
     println!("recv exit");

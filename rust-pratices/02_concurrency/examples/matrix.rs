@@ -1,6 +1,9 @@
 use anyhow::anyhow;
 use std::{
-    fmt::{self, Debug, Display}, ops::{Add, AddAssign, Deref, Mul}, sync::mpsc, thread, usize
+    fmt::{self, Debug, Display},
+    ops::{Add, AddAssign, Deref, Mul},
+    sync::mpsc,
+    thread, usize,
 };
 
 const MAX_PROCESS: usize = 4;
@@ -117,18 +120,23 @@ where
         return Err(anyhow!("Matrix multiply error: a.col != b.row"));
     }
 
-    let senders: Vec<mpsc::Sender<Msg<_>>> = (0..MAX_PROCESS).map(|_| -> mpsc::Sender<_> {
-        let (tx, rx) = mpsc::channel::<Msg<_>>();
-        thread::spawn(move || {
-            for msg in rx {
-                let value = dot_product(msg.input.row, msg.input.col).unwrap();
-                if let Err(e) = msg.sender.send(MsgOutput { idx: msg.input.idx, value }) {
-                    eprintln!("send output err: {}", e);
+    let senders: Vec<mpsc::Sender<Msg<_>>> = (0..MAX_PROCESS)
+        .map(|_| -> mpsc::Sender<_> {
+            let (tx, rx) = mpsc::channel::<Msg<_>>();
+            thread::spawn(move || {
+                for msg in rx {
+                    let value = dot_product(msg.input.row, msg.input.col).unwrap();
+                    if let Err(e) = msg.sender.send(MsgOutput {
+                        idx: msg.input.idx,
+                        value,
+                    }) {
+                        eprintln!("send output err: {}", e);
+                    }
                 }
-            }
-        });
-        tx
-    }).collect();
+            });
+            tx
+        })
+        .collect();
 
     let mut receivers = vec![];
     let mut data = vec![T::default(); a.row * b.col];
@@ -136,11 +144,7 @@ where
         for j in 0..b.col {
             // c[i * b.col + j] += a.data[i * a.col + k] * b.data[k * b.col + j];
             let row = Vector::new(&a.data[i * a.col..(i + 1) * a.col]);
-            let col_data = b.data[j..]
-                .iter()
-
-                .copied()
-                .collect::<Vec<_>>();
+            let col_data = b.data[j..].iter().copied().collect::<Vec<_>>();
             let col = Vector::new(col_data);
 
             let idx = i * b.col + j;
