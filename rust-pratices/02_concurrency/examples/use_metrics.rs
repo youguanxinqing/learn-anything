@@ -19,7 +19,7 @@ fn main() -> anyhow::Result<()> {
 
     loop {
         thread::sleep(Duration::from_secs(3));
-        println!("{:?}", metrics.snapshot());
+        println!("{}", metrics);
     }
 
     #[allow(unreachable_code)]
