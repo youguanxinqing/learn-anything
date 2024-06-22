@@ -4,7 +4,6 @@ use std::{
     sync::{Arc, RwLock},
     fmt,
 };
-
 #[derive(Debug, Clone)]
 pub struct Metrics {
     data: Arc<RwLock<HashMap<String, i64>>>,

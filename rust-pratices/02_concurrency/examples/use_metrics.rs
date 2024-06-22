@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 
 use anyhow::{self, Result};
-use concurrency::Metrics;
+use concurrency::metrics::Metrics;
 use rand::{thread_rng, Rng};
 
 const N: i32 = 2;
