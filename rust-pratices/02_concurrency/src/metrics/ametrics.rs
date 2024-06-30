@@ -6,7 +6,7 @@ use anyhow::{anyhow, Result};
 
 #[derive(Debug, Clone)]
 pub struct AmapMetrics {
-    data: Arc<HashMap<String, atomic::AtomicU16>>
+    data: Arc<HashMap<String, atomic::AtomicU16>>,
 }
 
 impl AmapMetrics {
