@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use anyhow::Result;
 use tokio::{io::{self, AsyncWriteExt}, net::{TcpListener, TcpStream}};
 use tracing::{info, warn};
@@ -15,7 +17,7 @@ async fn main() -> Result<()> {
         info!("Accepted connection from: {}", raddr);
         
         tokio::spawn(async move {
-            if let Err(e) = process_redis_connection(stream).await {
+            if let Err(e) = process_redis_connection(stream, raddr).await {
                 warn!("Error process connection with: addr={}, e={}", raddr, e);
             }
         });
@@ -24,7 +26,7 @@ async fn main() -> Result<()> {
 
 const BUF_SIZE: usize = 4096;
 
-async fn process_redis_connection(mut stream: TcpStream) -> Result<()> {
+async fn process_redis_connection(mut stream: TcpStream, raddr: SocketAddr) -> Result<()> {
     loop {
         stream.readable().await?;
         
@@ -48,6 +50,7 @@ async fn process_redis_connection(mut stream: TcpStream) -> Result<()> {
             }
         }
     }
+    warn!("breaken connection: addr={}", raddr);
 
     Ok(())
 }
