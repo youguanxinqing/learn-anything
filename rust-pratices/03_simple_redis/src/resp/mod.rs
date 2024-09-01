@@ -1,22 +1,31 @@
 pub mod decode;
 pub mod encode;
 
+use bytes::BytesMut;
+use std::{
+    collections::{HashMap, HashSet},
+    ops::{Deref, DerefMut},
+};
+use thiserror::Error;
 
-use std::{collections::{HashMap, HashSet}, ops::{Deref, DerefMut}};
-use bytes::{BytesMut};
-
-trait RespEncode {
+pub trait RespEncode {
     fn encode(self) -> Vec<u8>;
 }
 
-trait RespDecode {
-    fn decode(buf: Self) -> Result<RespFrame, String>;
+pub trait RespDecode: Sized {
+    fn decode(buf: BytesMut) -> Result<Self, RespError>;
 }
 
-impl RespDecode for BytesMut {
-    fn decode(buf: Self) -> Result<RespFrame, String> {
-        todo!()
-    }
+#[derive(Error, Debug)]
+pub enum RespError {
+    #[error("Invliad frame: {0}")]
+    InvalidFrame(String),
+    #[error("Invliad frame type: {0}")]
+    InvalidFrameType(String),
+    #[error("Invliad frame length: {0}")]
+    InvalidFrameLength(isize),
+    #[error("Frame is not complete")]
+    NotComplete,
 }
 
 #[derive(Eq, Hash, PartialEq)]
@@ -35,7 +44,7 @@ pub enum RespFrame {
     Set(Set),
 }
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, Debug)]
 pub struct SimpleString(String);
 
 impl SimpleString {
@@ -66,7 +75,7 @@ pub struct Double(f64);
 
 impl Deref for Double {
     type Target = f64;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -101,7 +110,7 @@ impl Map {
 
 impl Deref for Map {
     type Target = HashMap<String, RespFrame>;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -130,7 +139,7 @@ impl Set {
 
 impl Deref for Set {
     type Target = HashSet<RespFrame>;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -141,7 +150,6 @@ impl DerefMut for Set {
         &mut self.0
     }
 }
-
 
 impl std::hash::Hash for Set {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

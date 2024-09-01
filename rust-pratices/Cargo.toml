@@ -3,5 +3,5 @@ resolver = "1"
 members = [
   "01_rcli",
   "02_concurrency",
-  "03_simple_redis",
+  "03_simple_redis", 
 ]
