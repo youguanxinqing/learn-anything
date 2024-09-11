@@ -1,24 +1,25 @@
-use std::{fmt::format, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
 use super::{
-    Double, NullArray, NullBulkString, RespDecode, RespError, RespFrame, RespNull, SimpleError,
-    SimpleString,
+    Double, Map, NullArray, NullBulkString, RespDecode, RespError, RespFrame, RespNull, Set,
+    SimpleError, SimpleString,
 };
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::BytesMut;
 
 impl RespDecode for RespFrame {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
         let mut iter = buf.iter().peekable();
         match iter.peek() {
             Some(b'+') => {
-                todo!()
+                SimpleString::decode(buf[1..].into()).map(|val| RespFrame::SimpleString(val))
             }
+            Some(b'-') => SimpleError::decode(buf[1..].into()).map(|val| RespFrame::Error(val)),
             _ => todo!(),
         }
     }
 }
 
-fn lookup_pos_before_end(buf: &BytesMut) -> usize {
+fn lookup_pos_before_end(buf: &BytesMut) -> Result<usize, RespError> {
     let mut end = 0;
     for i in (1..buf.len()).rev() {
         if buf[i] == b'\n' && buf[i - 1] == b'\r' {
@@ -26,7 +27,11 @@ fn lookup_pos_before_end(buf: &BytesMut) -> usize {
             break;
         }
     }
-    return end;
+
+    if end == 0 {
+        return Err(RespError::NotComplete);
+    }
+    return Ok(end);
 }
 
 fn validate_len_of_buf(buf: &BytesMut) -> Result<(), RespError> {
@@ -52,11 +57,7 @@ impl RespDecode for SimpleString {
         validate_starts_with(&buf, b"+", "expect: SimpleString(+)")?;
 
         // search position before \r\n
-        let end = lookup_pos_before_end(&buf);
-        if end == 0 {
-            return Err(RespError::NotComplete);
-        }
-
+        let end = lookup_pos_before_end(&buf)?;
         let s = String::from_utf8(buf[1..end].to_vec());
         match s {
             Err(e) => Err(RespError::InvalidFrame(e.to_string())),
@@ -71,11 +72,7 @@ impl RespDecode for SimpleError {
         validate_starts_with(&buf, b"-", "expect: SimpleError(-)")?;
 
         // search position before \r\n
-        let end = lookup_pos_before_end(&buf);
-        if end == 0 {
-            return Err(RespError::NotComplete);
-        }
-
+        let end = lookup_pos_before_end(&buf)?;
         let s = String::from_utf8(buf[1..end].to_vec());
         match s {
             Err(e) => Err(RespError::InvalidFrame(e.to_string())),
@@ -134,16 +131,77 @@ impl RespDecode for Double {
         validate_len_of_buf(&buf)?;
         validate_starts_with(&buf, b",", "expect: Double(,)")?;
 
-        let end = lookup_pos_before_end(&buf);
-        if end == 0 {
-            return Err(RespError::NotComplete);
-        }
-
+        let end = lookup_pos_before_end(&buf)?;
         let s: &str = &String::from_utf8_lossy(&buf[1..end]);
         match FromStr::from_str(s) {
             Err(_) => Ok(Double(f64::NAN)),
             Ok(value) => Ok(Double(value)),
         }
+    }
+}
+
+impl RespDecode for bool {
+    fn decode(buf: BytesMut) -> Result<Self, RespError> {
+        validate_len_of_buf(&buf)?;
+        validate_starts_with(&buf, b"#", "expect: bool(,)")?;
+
+        let end = lookup_pos_before_end(&buf)?;
+        let s: &str = &String::from_utf8_lossy(&buf[1..end]).to_string();
+        match s {
+            "t" => Ok(true),
+            "f" => Ok(false),
+            _ => Err(RespError::InvalidFrame(format!("expect: bool(t|f)"))),
+        }
+    }
+}
+
+impl RespDecode for Map {
+    fn decode(buf: BytesMut) -> Result<Self, RespError> {
+        validate_len_of_buf(&buf)?;
+        validate_starts_with(&buf, b"%", "expect: Map(%)")?;
+
+        // find number of k-v pairs
+        let mut eof_of_num = 0;
+        let length_of_buf = buf.to_vec().len();
+        for i in 1..length_of_buf {
+            if i + 1 >= length_of_buf {
+                break;
+            }
+            if buf[i] == b'\r' && buf[i + 1] == b'\n' {
+                eof_of_num = i;
+                break;
+            }
+        }
+        if eof_of_num == 0 {
+            return Err(RespError::InvalidFrame(format!(
+                "expect: Map(%<num>\r\n...)"
+            )));
+        }
+
+        let num_of_pair = String::from_utf8_lossy(&buf[1..eof_of_num])
+            .parse::<usize>()
+            .map_err(|_| {
+                RespError::InvalidFrame(format!(
+                    "expect: valid unsigned number, but got {}",
+                    String::from_utf8_lossy(&buf[1..eof_of_num]),
+                ))
+            })?;
+
+        let entries_chunk = String::from_utf8_lossy(&buf[eof_of_num + 2..]).to_string();
+
+        let mut map: HashMap<String, RespFrame> = HashMap::with_capacity(num_of_pair);
+        entries_chunk.split("\r\n").for_each(|chunk| todo!());
+
+        Ok(Map(map))
+    }
+}
+
+impl RespDecode for Set {
+    fn decode(buf: BytesMut) -> Result<Self, RespError> {
+        validate_len_of_buf(&buf)?;
+        validate_starts_with(&buf, b"~", "expect: Set(~)")?;
+
+        todo!()
     }
 }
 

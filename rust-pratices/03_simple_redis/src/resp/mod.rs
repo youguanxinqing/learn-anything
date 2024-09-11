@@ -44,6 +44,22 @@ pub enum RespFrame {
     Set(Set),
 }
 
+// impl RespFrame {
+//     fn new(buf: BytesMut) -> Result<Self, RespError> {
+//         if buf.len() < 1 {
+//             return Err(RespError::InvalidFrame(format!("expect: need valid buf")));
+//         }
+
+//         let first_symbol = buf[0];
+//         match first_symbol {
+//             b'+' => SimpleString::decode(buf).map(|val| Self::SimpleString(val)),
+//             b'-' => SimpleError::decode(buf).map(|val| Self::Error(val)),
+//             b':' => Double::decode(buf).map(|val| Self::Double(val)),
+//             _ => todo!(),
+//         }
+//     }
+// }
+
 #[derive(Eq, Hash, PartialEq, Debug)]
 pub struct SimpleString(String);
 
