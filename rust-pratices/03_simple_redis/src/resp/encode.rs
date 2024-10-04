@@ -47,7 +47,7 @@ impl RespEncode for SimpleError {
 impl RespEncode for i64 {
     fn encode(self) -> Vec<u8> {
         let sign = if self > 0 { "+" } else { "-" };
-        format!(":{}{}", sign, self).into()
+        format!(":{}{}\r\n", sign, self).into()
     }
 }
 

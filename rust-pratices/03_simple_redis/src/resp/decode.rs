@@ -81,9 +81,18 @@ impl RespDecode for SimpleError {
     }
 }
 
+// Integers: :[<+|->]<value>\r\n
 impl RespDecode for i64 {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
-        todo!()
+        validate_len_of_buf(&buf)?;
+        validate_starts_with(&buf, b":", "expect: i64(:)")?;
+
+        let end = lookup_pos_before_end(&buf)?;
+        let s = String::from_utf8(buf[1..end].to_vec());
+        match s {
+            Err(e) => Err(RespError::InvalidFrame(e.to_string())),
+            Ok(s) => Ok(s.parse::<i64>().map_err(|e| RespError::InvalidFrame(e.to_string()))?),
+        }
     }
 }
 
@@ -235,5 +244,16 @@ mod tests {
         let bytes = BytesMut::from("+ok\r\n");
         let simple_string = SimpleString::decode(bytes).unwrap();
         assert_eq!(simple_string, SimpleString::from("ok"));
+    }
+
+    #[test]
+    fn test_i64_decoding() {
+        let bytes = BytesMut::from(":+12\r\n");
+        let num = i64::decode(bytes).unwrap();
+        assert_eq!(num, 12);
+
+        let bytes = BytesMut::from(":-121\r\n");
+        let num = i64::decode(bytes).unwrap();
+        assert_eq!(num, -121);
     }
 }
