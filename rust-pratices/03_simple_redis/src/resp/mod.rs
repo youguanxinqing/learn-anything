@@ -84,7 +84,7 @@ pub struct RespNull;
 #[derive(Eq, Hash, PartialEq)]
 pub struct NullArray;
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, Default, Debug)]
 pub struct NullBulkString;
 
 pub struct Double(f64);

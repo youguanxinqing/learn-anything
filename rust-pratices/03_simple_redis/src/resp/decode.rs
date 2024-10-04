@@ -142,7 +142,7 @@ impl RespDecode for NullBulkString {
             )));
         }
 
-        Ok(NullBulkString)
+        Ok(NullBulkString::default())
     }
 }
 
@@ -266,7 +266,7 @@ impl RespDecode for Set {
 mod tests {
     use bytes::BytesMut;
 
-    use crate::resp::{RespDecode, SimpleString};
+    use crate::resp::{NullBulkString, RespDecode, SimpleString};
 
     #[test]
     fn test_string_decode() {
@@ -291,5 +291,12 @@ mod tests {
         let bytes = BytesMut::from("$12\r\nhello world!\r\n");
         let bulk_string = Vec::<u8>::decode(bytes).unwrap();
         assert_eq!(bulk_string, Vec::from("hello world!"));
+    }
+
+    #[test]
+    fn test_null_bulk_string() {
+        let bytes = BytesMut::from("$-1\r\n");
+        let null_bulk_string = NullBulkString::decode(bytes).unwrap();
+        assert_eq!(null_bulk_string, NullBulkString::default());
     }
 }
