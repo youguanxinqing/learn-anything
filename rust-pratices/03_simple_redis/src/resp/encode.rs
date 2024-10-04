@@ -52,6 +52,7 @@ impl RespEncode for i64 {
 }
 
 // Bulk strings: $<length>\r\n<data>\r\n
+// note: A bulk string represents a single binary string. 
 impl RespEncode for Vec<u8> {
     fn encode(self) -> Vec<u8> {
         let mut bulk_string = BytesMut::new();

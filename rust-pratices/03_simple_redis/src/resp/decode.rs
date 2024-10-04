@@ -1,10 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, io::BufRead, str::FromStr};
 
 use super::{
     Double, Map, NullArray, NullBulkString, RespDecode, RespError, RespFrame, RespNull, Set,
     SimpleError, SimpleString,
 };
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 
 impl RespDecode for RespFrame {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
@@ -32,6 +32,21 @@ fn lookup_pos_before_end(buf: &BytesMut) -> Result<usize, RespError> {
         return Err(RespError::NotComplete);
     }
     return Ok(end);
+}
+
+fn lookup_pos_at_first(buf: &BytesMut) -> Result<usize, RespError> {
+    let mut end = 0;
+    for i in 1..buf.len()-1 {
+        if buf[i] == b'\r' && buf[i + 1] == b'\n' {
+            end = i;
+            break;
+        }
+    }
+
+    if end == 0 {
+        return Err(RespError::NotComplete);
+    }
+    return Ok(end)
 }
 
 fn validate_len_of_buf(buf: &BytesMut) -> Result<(), RespError> {
@@ -96,9 +111,23 @@ impl RespDecode for i64 {
     }
 }
 
+// Bulk strings: $<length>\r\n<data>\r\n
+// note: A bulk string represents a single binary string. 
 impl RespDecode for Vec<u8> {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
-        todo!()
+        validate_len_of_buf(&buf)?;
+        validate_starts_with(&buf, b"$", "expect: Vec<u8>($)")?;
+
+        // the left element of first '\r\n' is total of elements
+        let num_splitter_index = lookup_pos_at_first(&buf)
+            .map_err(|e| RespError::InvalidFrame(format!("lack of the first splitter: {}", e.to_string())))?;
+        let length = String::from_utf8(buf[1..num_splitter_index].to_vec())
+            .map(|val| val.parse::<usize>())
+            .map_err(|e| RespError::InvalidFrame(format!("parse length err: {}", e)))?;
+        let length = length.map_err(|e| RespError::InvalidFrame(format!("parse length err: {}", e)))?;
+
+        let start = num_splitter_index+2;
+        return Ok(buf[start..start+length].to_vec());
     }
 }
 
@@ -240,14 +269,14 @@ mod tests {
     use crate::resp::{RespDecode, SimpleString};
 
     #[test]
-    fn test_string_decoding() {
+    fn test_string_decode() {
         let bytes = BytesMut::from("+ok\r\n");
         let simple_string = SimpleString::decode(bytes).unwrap();
         assert_eq!(simple_string, SimpleString::from("ok"));
     }
 
     #[test]
-    fn test_i64_decoding() {
+    fn test_i64_decode() {
         let bytes = BytesMut::from(":+12\r\n");
         let num = i64::decode(bytes).unwrap();
         assert_eq!(num, 12);
@@ -255,5 +284,12 @@ mod tests {
         let bytes = BytesMut::from(":-121\r\n");
         let num = i64::decode(bytes).unwrap();
         assert_eq!(num, -121);
+    }
+
+    #[test]
+    fn test_bulk_string_decode() {
+        let bytes = BytesMut::from("$12\r\nhello world!\r\n");
+        let bulk_string = Vec::<u8>::decode(bytes).unwrap();
+        assert_eq!(bulk_string, Vec::from("hello world!"));
     }
 }
