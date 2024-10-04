@@ -81,33 +81,15 @@ impl RespDecode for SimpleError {
     }
 }
 
-impl RespDecode for RespNull {
+impl RespDecode for i64 {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
-        validate_len_of_buf(&buf)?;
-
-        if buf != "_\r\n" {
-            return Err(RespError::InvalidFrameType(format!(
-                "expect: RespNull(_\r\n), got: {:?}",
-                buf
-            )));
-        }
-
-        Ok(RespNull)
+        todo!()
     }
 }
 
-impl RespDecode for NullArray {
+impl RespDecode for Vec<u8> {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
-        validate_len_of_buf(&buf)?;
-
-        if buf != "*-1\r\n" {
-            return Err(RespError::InvalidFrameType(format!(
-                "expect: NullArray(*-1\r\n), got: {:?}",
-                buf
-            )));
-        }
-
-        Ok(NullArray)
+        todo!()
     }
 }
 
@@ -126,17 +108,39 @@ impl RespDecode for NullBulkString {
     }
 }
 
-impl RespDecode for Double {
+impl RespDecode for Vec<RespFrame> {
+    fn decode(buf: BytesMut) -> Result<Self, RespError> {
+        todo!()
+    }
+}
+
+impl RespDecode for NullArray {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
         validate_len_of_buf(&buf)?;
-        validate_starts_with(&buf, b",", "expect: Double(,)")?;
 
-        let end = lookup_pos_before_end(&buf)?;
-        let s: &str = &String::from_utf8_lossy(&buf[1..end]);
-        match FromStr::from_str(s) {
-            Err(_) => Ok(Double(f64::NAN)),
-            Ok(value) => Ok(Double(value)),
+        if buf != "*-1\r\n" {
+            return Err(RespError::InvalidFrameType(format!(
+                "expect: NullArray(*-1\r\n), got: {:?}",
+                buf
+            )));
         }
+
+        Ok(NullArray)
+    }
+}
+
+impl RespDecode for RespNull {
+    fn decode(buf: BytesMut) -> Result<Self, RespError> {
+        validate_len_of_buf(&buf)?;
+
+        if buf != "_\r\n" {
+            return Err(RespError::InvalidFrameType(format!(
+                "expect: RespNull(_\r\n), got: {:?}",
+                buf
+            )));
+        }
+
+        Ok(RespNull)
     }
 }
 
@@ -154,6 +158,21 @@ impl RespDecode for bool {
         }
     }
 }
+
+impl RespDecode for Double {
+    fn decode(buf: BytesMut) -> Result<Self, RespError> {
+        validate_len_of_buf(&buf)?;
+        validate_starts_with(&buf, b",", "expect: Double(,)")?;
+
+        let end = lookup_pos_before_end(&buf)?;
+        let s: &str = &String::from_utf8_lossy(&buf[1..end]);
+        match FromStr::from_str(s) {
+            Err(_) => Ok(Double(f64::NAN)),
+            Ok(value) => Ok(Double(value)),
+        }
+    }
+}
+
 
 impl RespDecode for Map {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
