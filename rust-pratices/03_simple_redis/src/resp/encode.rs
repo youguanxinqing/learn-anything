@@ -1,9 +1,14 @@
 use core::f64;
-use std::{collections::{HashMap, HashSet}, usize};
+use std::{
+    collections::{HashMap, HashSet},
+    usize,
+};
 
 use bytes::{BufMut, BytesMut};
 
-use super::{Map, NullArray, NullBulkString, RespEncode, RespFrame, RespNull, Set, SimpleError, SimpleString};
+use super::{
+    Map, NullArray, NullBulkString, RespEncode, RespFrame, RespNull, Set, SimpleError, SimpleString,
+};
 
 impl RespEncode for RespFrame {
     fn encode(self) -> Vec<u8> {
@@ -24,7 +29,6 @@ impl RespEncode for RespFrame {
     }
 }
 
-
 // Simple String: +OK\r\n
 impl RespEncode for SimpleString {
     fn encode(self) -> Vec<u8> {
@@ -42,7 +46,7 @@ impl RespEncode for SimpleError {
 // Integers: :[<+|->]<value>\r\n
 impl RespEncode for i64 {
     fn encode(self) -> Vec<u8> {
-        let sign = if self > 0 {"+"} else {"-"};
+        let sign = if self > 0 { "+" } else { "-" };
         format!(":{}{}", sign, self).into()
     }
 }
@@ -99,7 +103,7 @@ impl RespEncode for RespNull {
 // Boolean: #<t|f>\r\n
 impl RespEncode for bool {
     fn encode(self) -> Vec<u8> {
-        format!("#{}\r\n", if self {"t"} else {"f"}).into()
+        format!("#{}\r\n", if self { "t" } else { "f" }).into()
     }
 }
 
@@ -142,14 +146,14 @@ impl RespEncode for Set {
         for frame in self.0 {
             buf.extend_from_slice(frame.encode().as_ref());
         }
-        
+
         buf
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::resp::{Set, Map, RespEncode, RespFrame};
+    use crate::resp::{Map, RespEncode, RespFrame, Set};
 
     #[test]
     fn test_vec_u8_encoding() {
@@ -165,11 +169,14 @@ mod tests {
         let v: f64 = std::f64::NAN;
         let stream = v.encode();
         println!("encode result: {:?}", String::from_utf8_lossy(&stream));
-        
+
         assert_eq!(",nan\r\n".to_string().as_bytes(), stream);
         assert_eq!(",1.23\r\n".to_string().as_bytes(), 1.23.encode());
         assert_eq!(",inf\r\n".to_string().as_bytes(), f64::INFINITY.encode());
-        assert_eq!(",-inf\r\n".to_string().as_bytes(), f64::NEG_INFINITY.encode());
+        assert_eq!(
+            ",-inf\r\n".to_string().as_bytes(),
+            f64::NEG_INFINITY.encode()
+        );
     }
 
     #[test]
