@@ -7,7 +7,7 @@ use std::{
 use bytes::{BufMut, BytesMut};
 
 use super::{
-    Map, NullArray, NullBulkString, RespEncode, RespFrame, RespNull, Set, SimpleError, SimpleString,
+    Double, Map, NullArray, NullBulkString, RespEncode, RespFrame, RespNull, Set, SimpleError, SimpleString
 };
 
 impl RespEncode for RespFrame {
@@ -109,10 +109,11 @@ impl RespEncode for bool {
 }
 
 // Double: ,[<+|->]<integral>[.<fractional>][<E|e>[sign]<exponent>]\r\n
-impl RespEncode for f64 {
+// TODO 科学计数暂时不需要实现
+impl RespEncode for Double {
     fn encode(self) -> Vec<u8> {
-        let value = match self {
-            x if x > f64::NEG_INFINITY && x < f64::INFINITY => format!("{}", self),
+        let value = match self.0 {
+            x if x > f64::NEG_INFINITY && x < f64::INFINITY => format!("{}", self.0),
             x if x >= f64::INFINITY => "inf".to_string(),
             x if x <= f64::NEG_INFINITY => "-inf".to_string(),
             _ => "nan".into(),
@@ -154,7 +155,7 @@ impl RespEncode for Set {
 
 #[cfg(test)]
 mod tests {
-    use crate::resp::{Map, RespEncode, RespFrame, Set};
+    use crate::resp::{Double, Map, RespEncode, RespFrame, Set};
 
     #[test]
     fn test_vec_u8_encoding() {
@@ -167,16 +168,16 @@ mod tests {
 
     #[test]
     fn test_double_encoding() {
-        let v: f64 = std::f64::NAN;
+        let v = Double(std::f64::NAN);
         let stream = v.encode();
         println!("encode result: {:?}", String::from_utf8_lossy(&stream));
 
         assert_eq!(",nan\r\n".to_string().as_bytes(), stream);
-        assert_eq!(",1.23\r\n".to_string().as_bytes(), 1.23.encode());
-        assert_eq!(",inf\r\n".to_string().as_bytes(), f64::INFINITY.encode());
+        assert_eq!(",1.23\r\n".to_string().as_bytes(), Double(1.23).encode());
+        assert_eq!(",inf\r\n".to_string().as_bytes(), Double(f64::INFINITY).encode());
         assert_eq!(
             ",-inf\r\n".to_string().as_bytes(),
-            f64::NEG_INFINITY.encode()
+            Double(f64::NEG_INFINITY).encode()
         );
     }
 

@@ -163,7 +163,7 @@ impl RespDecode for NullArray {
             )));
         }
 
-        Ok(NullArray)
+        Ok(NullArray::default())
     }
 }
 
@@ -178,7 +178,7 @@ impl RespDecode for RespNull {
             )));
         }
 
-        Ok(RespNull)
+        Ok(RespNull::default())
     }
 }
 
@@ -266,7 +266,7 @@ impl RespDecode for Set {
 mod tests {
     use bytes::BytesMut;
 
-    use crate::resp::{NullBulkString, RespDecode, SimpleString};
+    use crate::resp::{Double, NullArray, NullBulkString, RespDecode, RespEncode, RespNull, SimpleString};
 
     #[test]
     fn test_string_decode() {
@@ -294,9 +294,61 @@ mod tests {
     }
 
     #[test]
-    fn test_null_bulk_string() {
+    fn test_null_bulk_string_decode() {
         let bytes = BytesMut::from("$-1\r\n");
         let null_bulk_string = NullBulkString::decode(bytes).unwrap();
         assert_eq!(null_bulk_string, NullBulkString::default());
+    }
+
+    #[test]
+    fn test_null_array_decode() {
+        let bytes = BytesMut::from("*-1\r\n");
+        let null_array = NullArray::decode(bytes).unwrap();
+        assert_eq!(null_array, NullArray::default());
+    }
+
+    #[test]
+    fn test_resp_null_decode() {
+        let bytes = BytesMut::from("_\r\n");
+        let resp_null = RespNull::decode(bytes).unwrap();
+        assert_eq!(resp_null, RespNull::default());
+    }
+
+    #[test]
+    fn test_bool_decode() {
+        let bytes = BytesMut::from("#t\r\n");
+        let true_value = bool::decode(bytes).unwrap();
+        assert_eq!(true_value, true);
+        
+        let bytes = BytesMut::from("#f\r\n");
+        let false_value = bool::decode(bytes).unwrap();
+        assert_eq!(false_value, false);
+    }
+
+    #[test]
+    fn test_double_decode() {
+        let bytes = BytesMut::from(",+12.1\r\n");
+        let value = Double::decode(bytes).unwrap();
+        assert_eq!(value, Double(12.1_f64));
+
+        let bytes = BytesMut::from(",12.1\r\n");
+        let value = Double::decode(bytes).unwrap();
+        assert_eq!(value, Double(12.1_f64));
+
+        let bytes = BytesMut::from(",-31.415\r\n");
+        let value = Double::decode(bytes).unwrap();
+        assert_eq!(value, Double(-31.415_f64));
+
+        let bytes = BytesMut::from(",abcder\r\n");
+        let value = Double::decode(bytes).unwrap();
+        assert!(f64::is_nan(value.0));
+
+        let bytes = BytesMut::from(",+inf\r\n");
+        let value = Double::decode(bytes).unwrap();
+        assert!(f64::is_sign_positive(value.0) && f64::is_infinite(value.0));
+
+        let bytes = BytesMut::from(",-inf\r\n");
+        let value = Double::decode(bytes).unwrap();
+        assert!(f64::is_sign_negative(value.0) && f64::is_infinite(value.0));
     }
 }

@@ -78,15 +78,16 @@ impl From<&str> for SimpleString {
 #[derive(Eq, Hash, PartialEq)]
 pub struct SimpleError(String);
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, Default, Debug)]
 pub struct RespNull;
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, Default, Debug)]
 pub struct NullArray;
 
 #[derive(Eq, Hash, PartialEq, Default, Debug)]
 pub struct NullBulkString;
 
+#[derive(PartialEq, PartialOrd, Debug)]
 pub struct Double(f64);
 
 impl Deref for Double {
@@ -97,17 +98,7 @@ impl Deref for Double {
     }
 }
 
-impl std::cmp::PartialEq for Double {
-    fn eq(&self, other: &Self) -> bool {
-        self == other
-    }
-}
-
-impl std::cmp::Eq for Double {
-    fn assert_receiver_is_total_eq(&self) {
-        todo!()
-    }
-}
+impl std::cmp::Eq for Double {}
 
 impl std::hash::Hash for Double {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
