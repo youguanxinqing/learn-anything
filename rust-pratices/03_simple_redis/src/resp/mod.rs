@@ -16,7 +16,7 @@ pub trait RespDecode: Sized {
     fn decode(buf: BytesMut) -> Result<Self, RespError>;
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum RespError {
     #[error("Invliad frame: {0}")]
     InvalidFrame(String),
@@ -26,6 +26,47 @@ pub enum RespError {
     InvalidFrameLength(isize),
     #[error("Frame is not complete")]
     NotComplete,
+}
+
+#[macro_export]
+macro_rules! invalid_frame {
+    ($($arg:tt)*) => {
+        {
+            let err = crate::resp::RespError::InvalidFrame(format!($($arg)*));
+            err
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! invalid_frame_type {
+    ($($arg:tt)*) => {
+        {
+            let err = crate::resp::RespError::InvalidFrameType(format!($($arg)*));
+            err
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! invalid_frame_length {
+    ($arg:tt) => {
+        {
+            let err = crate::resp::RespError::InvalidFrameLength($arg);
+            err
+        }
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::resp::RespError;
+
+    #[test]
+    fn test_invalid_frame_macro() {
+        let err = invalid_frame!("there is a err: {}", "yes!");
+        assert_eq!(err, RespError::InvalidFrame(format!("there is a err: {}", "yes!")));
+    }
 }
 
 #[derive(Eq, Hash, PartialEq)]
@@ -44,21 +85,40 @@ pub enum RespFrame {
     Set(Set),
 }
 
-// impl RespFrame {
-//     fn new(buf: BytesMut) -> Result<Self, RespError> {
-//         if buf.len() < 1 {
-//             return Err(RespError::InvalidFrame(format!("expect: need valid buf")));
-//         }
+impl RespFrame {
+    fn from_bytes(buf: BytesMut) -> Result<Self, RespError> {
+        if buf.len() < 1 {
+            return Err(invalid_frame!("expect: need valid buf"));
+        }
 
-//         let first_symbol = buf[0];
-//         match first_symbol {
-//             b'+' => SimpleString::decode(buf).map(|val| Self::SimpleString(val)),
-//             b'-' => SimpleError::decode(buf).map(|val| Self::Error(val)),
-//             b':' => Double::decode(buf).map(|val| Self::Double(val)),
-//             _ => todo!(),
-//         }
-//     }
-// }
+        let first_symbol = buf[0];
+        match first_symbol {
+            b'+' => SimpleString::decode(buf).map(|val| Self::SimpleString(val)),
+            b'-' => SimpleError::decode(buf).map(|val| Self::Error(val)),
+            b':' => Double::decode(buf).map(|val| Self::Double(val)),
+            b'$' => {
+                if buf == "$-1\r\n" {
+                    Ok(Self::NullBulkString(NullBulkString::default()))
+                } else {
+                    Vec::<u8>::decode(buf).map(|val| Self::BulkString(val))
+                }
+            },
+            b'*' => {
+                if buf == "*-1\r\n" {
+                    Ok(Self::NullArray(NullArray::default()))
+                } else {
+                    Vec::<RespFrame>::decode(buf).map(|val| Self::Array(val))
+                }
+            },
+            b'_' => RespNull::decode(buf).map(|val| Self::Null(val)),
+            b'#' => bool::decode(buf).map(|val| Self::Boolean(val)),
+            b',' => Double::decode(buf).map(|val| Self::Double(val)),
+            b'%' => Map::decode(buf).map(|val| Self::Map(val)),
+            b'~' => Set::decode(buf).map(|val| Self::Set(val)),
+            _ => Err(invalid_frame!("not support type: {}", first_symbol))
+        }
+    }
+}
 
 #[derive(Eq, Hash, PartialEq, Debug)]
 pub struct SimpleString(String);

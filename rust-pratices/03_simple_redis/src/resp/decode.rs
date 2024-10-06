@@ -1,5 +1,7 @@
 use std::{collections::HashMap, io::BufRead, str::FromStr};
 
+use crate::invalid_frame;
+
 use super::{
     Double, Map, NullArray, NullBulkString, RespDecode, RespError, RespFrame, RespNull, Set,
     SimpleError, SimpleString,
@@ -51,7 +53,7 @@ fn lookup_pos_at_first(buf: &BytesMut) -> Result<usize, RespError> {
 
 fn validate_len_of_buf(buf: &BytesMut) -> Result<(), RespError> {
     if buf.len() < 3 {
-        return Err(RespError::NotComplete);
+        return Err(RespError::InvalidFrameLength(buf.len() as isize));
     }
     Ok(())
 }
@@ -146,6 +148,7 @@ impl RespDecode for NullBulkString {
     }
 }
 
+// *<number-of-elements>\r\n<element-1>...<element-n>
 impl RespDecode for Vec<RespFrame> {
     fn decode(buf: BytesMut) -> Result<Self, RespError> {
         todo!()
@@ -218,36 +221,15 @@ impl RespDecode for Map {
         validate_starts_with(&buf, b"%", "expect: Map(%)")?;
 
         // find number of k-v pairs
-        let mut eof_of_num = 0;
-        let length_of_buf = buf.to_vec().len();
-        for i in 1..length_of_buf {
-            if i + 1 >= length_of_buf {
-                break;
-            }
-            if buf[i] == b'\r' && buf[i + 1] == b'\n' {
-                eof_of_num = i;
-                break;
-            }
-        }
-        if eof_of_num == 0 {
-            return Err(RespError::InvalidFrame(format!(
-                "expect: Map(%<num>\r\n...)"
-            )));
-        }
+        let splitter_start_pos = lookup_pos_at_first(&buf)
+            .map_err(|_| invalid_frame!("lack of the first splitter"))?;
+        let num = String::from_utf8(buf[1..splitter_start_pos].to_vec())
+            .map_err(|e| invalid_frame!("extract number of entries err: {}", e))?;
+        let num = num.parse::<usize>().map_err(|e| invalid_frame!("parse to usize err: {}", e))?;
 
-        let num_of_pair = String::from_utf8_lossy(&buf[1..eof_of_num])
-            .parse::<usize>()
-            .map_err(|_| {
-                RespError::InvalidFrame(format!(
-                    "expect: valid unsigned number, but got {}",
-                    String::from_utf8_lossy(&buf[1..eof_of_num]),
-                ))
-            })?;
-
-        let entries_chunk = String::from_utf8_lossy(&buf[eof_of_num + 2..]).to_string();
-
-        let mut map: HashMap<String, RespFrame> = HashMap::with_capacity(num_of_pair);
-        entries_chunk.split("\r\n").for_each(|chunk| todo!());
+        // parse entries
+        let map = HashMap::with_capacity(num);
+        
 
         Ok(Map(map))
     }
